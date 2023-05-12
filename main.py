@@ -18,34 +18,34 @@ class Board():
 
     def print_move(self, moves):
         print('Making moves: X = {}, y = {}'.format(moves[0] + 1, moves[1] + 1))
-    def calcNextMove(self, depth):
+    def calc_next_move(self, depth):
         #applying threat space search to get the best move first then using ABminmax
         board = self.get_matrix_board()
-        bestMove = self.searchWinningMove(board) #optimal strat to win
-        badMove = self.searchLoseMove(board) #strat to get defense
+        attMove = self.search_winning_move(board) #optimal strat to win
+        defMove = self.search_lose_move(board) #strat to get defense
 
         move = [0, 0]
-        if bestMove[1] is not None and bestMove[2] is not None:
-            move[0] = bestMove[1]
-            move[1] = bestMove[2]
-            print('Best move')
+        if attMove[1] is not None and attMove[2] is not None:
+            move[0] = attMove[1]
+            move[1] = attMove[2]
+            print('Att move')
             return move
-        if badMove[1] is not None and badMove[2] is not None:
-            move[0] = badMove[1]
-            move[1] = badMove[2]
+        if defMove[1] is not None and defMove[2] is not None:
+            move[0] = defMove[1]
+            move[1] = defMove[2]
             print('Def move')
             return move
         else:
-            bestMove = self.minimaxSearchAB(depth, board, True, -1.0, self.winScore)
-            if bestMove[1] is None:
+            attMove = self.minimax_search_ab(depth, board, True, -1.0, self.winScore)
+            if attMove[1] is None:
                 move = None
             else:
-                move[0] = bestMove[1]
-                move[1] = bestMove[2]
+                move[0] = attMove[1]
+                move[1] = attMove[2]
             print('AB move')
             return move
 
-    def playNextMove(self, board, move, isUserTurn): #get nextmove matrix
+    def next_move_sim(self, board, move, isUserTurn): #get nextmove matrix
         i, j = move[0], move[1]
         row, col = len(board), len(board[0])
         newBoard = [[0] * col for _ in range(row)]
@@ -56,56 +56,57 @@ class Board():
         return newBoard
 
     #search for possible winning move based on evaluation winning score
-    def searchWinningMove(self, matrix):
-        allPossibleMoves = self.generateMoves(matrix)
-        winningMove = [None, None, None]
+    def search_winning_move(self, matrix):
+        allPossibleMoves = self.generate_moves(matrix)
+        winning_move = [None, None, None]
 
         for move in allPossibleMoves:
-            dummyBoard = self.playNextMove(matrix, move, False)
+            dummyBoard = self.next_move_sim(matrix, move, False)
+            #print(self.getScore(dummyBoard,False,False))
+            if self.get_score(dummyBoard, False, False) >= self.winScore:
+                winning_move[1] = move[0]
+                winning_move[2] = move[1]
+                #print(self.getScore(dummyBoard, False, False) + 'move: ' + winning_move)
+                return winning_move
 
-            if self.getScore(dummyBoard, False, False) >= self.winScore:
-                winningMove[1] = move[0]
-                winningMove[2] = move[1]
-                return winningMove
+        return winning_move
 
-        return winningMove
-
-    def searchLoseMove(self, matrix):
-        allPossibleMoves = self.generateMoves(matrix)
-        print(len(allPossibleMoves))
+    def search_lose_move(self, matrix):
+        allPossibleMoves = self.generate_moves(matrix)
+        print('Possible Moves: ',len(allPossibleMoves))
 
         losingMove = [None, None, None]
 
         for move in allPossibleMoves:
-            dummyBoard = self.playNextMove(matrix, move, True)
+            dummyBoard = self.next_move_sim(matrix, move, True)
 
             # If the black player has a winning score in that temporary board, return the move.
-            if self.getScore(dummyBoard, True, False) >= self.winScore:
+            if self.get_score(dummyBoard, True, False) >= self.winScore:
                 losingMove[1] = move[0]
                 losingMove[2] = move[1]
                 return losingMove
 
         return losingMove
 
-    def minimaxSearchAB(self, depth, board, max_player, alpha, beta):
+    def minimax_search_ab(self, depth, board, max_player, alpha, beta):
         if depth == 0:
-            return [self.evaluateBoardForWhite(board, not max_player), None, None]
+            return [self.evaluate_board(board, not max_player), None, None]
 
-        allPossibleMoves = self.generateMoves(board)
+        all_possible_moves = self.generate_moves(board)
 
-        if len(allPossibleMoves) == 0:
-            return [self.evaluateBoardForWhite(board, not max_player), None, None]
+        if len(all_possible_moves) == 0:
+            return [self.evaluate_board(board, not max_player), None, None]
 
         bestMove = [None, None, None]
 
         if max_player:
             bestMove[0] = -100000000
 
-            for move in allPossibleMoves:
+            for move in all_possible_moves:
                 # Play current move
-                dummyBoard = self.playNextMove(board, move, False)
+                temp_board = self.next_move_sim(board, move, False)
 
-                tempMove = self.minimaxSearchAB(depth - 1, dummyBoard, not max_player, alpha, beta)
+                tempMove = self.minimax_search_ab(depth - 1, temp_board, not max_player, alpha, beta)
 
                 # Update alpha
                 if tempMove[0] > alpha:
@@ -120,13 +121,13 @@ class Board():
 
         else:
             bestMove[0] = 100000000.0
-            bestMove[1] = allPossibleMoves[0][0]
-            bestMove[2] = allPossibleMoves[0][1]
+            bestMove[1] = all_possible_moves[0][0]
+            bestMove[2] = all_possible_moves[0][1]
 
-            for move in allPossibleMoves:
-                dummyBoard = self.playNextMove(board, move, True)
+            for move in all_possible_moves:
+                temp_board = self.next_move_sim(board, move, True)
 
-                tempMove = self.minimaxSearchAB(depth - 1, dummyBoard, not max_player, alpha, beta)
+                tempMove = self.minimax_search_ab(depth - 1, temp_board, not max_player, alpha, beta)
 
                 # Update beta
                 if tempMove[0] < beta:
@@ -138,22 +139,43 @@ class Board():
                     bestMove = tempMove
                     bestMove[1] = move[0]
                     bestMove[2] = move[1]
-
+        print(self.evaluate_board(board, not max_player))
         return bestMove
 
-    def evaluateBoardForWhite(self, board, userTurn): #GET EVALUATION RATIO X winning/ O winning white
-        blackScore = self.getScore(board, True, userTurn)
-        whiteScore = self.getScore(board, False, userTurn)
+    def evaluate_board(self, board, userTurn): #GET EVALUATION RATIO O winning white/ X winning
+        x_score = self.get_score(board, True, userTurn)
+        o_score = self.get_score(board, False, userTurn)
 
-        if blackScore == 0:
-            blackScore = 1.0
+        if x_score == 0:
+            x_score = 1.0
 
-        return whiteScore / blackScore
+        return o_score / x_score
 
-    def generateMoves(self, boardMatrix): #Creating domain knowledge for AI
-        moveList = []
+    def generate_moves(self, board): #Creating domain knowledge for AI
+        moves = []
+        for i in range(self.size):
+            for j in range(self.size):
+                if board[i][j] == 0:  # Check if the cell is empty
+                    # Check for adjacent stones in all four directions vertical horizontal diagonal \/
+                    if i > 0 and j > 0 and board[i - 1][j - 1] != 0:
+                        moves.append((i, j))
+                    elif i > 0 and board[i - 1][j] != 0:
+                        moves.append((i, j))
+                    elif i > 0 and j < self.size - 1 and board[i - 1][j + 1] != 0:
+                        moves.append((i, j))
+                    elif j > 0 and board[i][j - 1] != 0:
+                        moves.append((i, j))
+                    elif j < self.size - 1 and board[i][j + 1] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and j > 0 and board[i + 1][j - 1] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and board[i + 1][j] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and j < self.size - 1 and board[i + 1][j + 1] != 0:
+                        moves.append((i, j))
+        return moves
 
-        # Tìm những tất cả những ô trống nhưng có đánh XO liền kề
+        '''# Tìm những tất cả những ô trống nhưng có đánh XO liền kề
         for i in range(self.size):
             for j in range(self.size):
                 if boardMatrix[i][j] > 0:
@@ -188,31 +210,31 @@ class Board():
                         move = [i, j]
                         moveList.append(move)
                         continue
-        return moveList
+        return moveList'''
 
 
 
-    def getScore(self, board, forX, blacksTurn):
-        return self.evaluateHorizontal(board, forX, blacksTurn) + \
-            self.evaluateVertical(board, forX, blacksTurn) + \
-            self.evaluateDiagonal(board, forX, blacksTurn)
+    def get_score(self, board, forX, x_turn):
+        return self.horizontal_score(board, forX, x_turn) + \
+            self.vertical_score(board, forX, x_turn) + \
+            self.diagonal_score(board, forX, x_turn)
 
-    def evaluateHorizontal(self, boardMatrix, forX, playersTurn):
+    def horizontal_score(self, board_matrix, forX, playersTurn):
         consecutive = 0
         blocks = 2
         score = 0
 
-        for i in range(len(boardMatrix)):
-            for j in range(len(boardMatrix[0])):
-                if boardMatrix[i][j] == (2 if forX else 1):
+        for i in range(len(board_matrix)):
+            for j in range(len(board_matrix[0])):
+                if board_matrix[i][j] == (2 if forX else 1):
                     # 2. Đếm...
                     consecutive += 1
                 # gặp ô trống
-                elif boardMatrix[i][j] == 0:
+                elif board_matrix[i][j] == 0:
                     if consecutive > 0:
                         # Ra: Ô trống ở cuối sau khi đếm. Giảm block rồi bắt đầu tính điểm sau đó reset lại ban đầu
                         blocks -= 1
-                        score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                        score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                         consecutive = 0
                         blocks = 1
                     else:
@@ -221,7 +243,7 @@ class Board():
                 # gặp quân địch
                 elif consecutive > 0:
                     # 2.Ra:  Ô bị chặn sau khi đếm. Tính điểm sau đó reset lại.
-                    score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                    score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                     consecutive = 0
                     blocks = 2
                 else:
@@ -230,7 +252,7 @@ class Board():
 
             # 3. Ra: nhưng lúc này đang ở cuối. Nếu liên tục thì vẫn tính cho đến hết dòng
             if consecutive > 0:
-                score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
 
             # reset lại để tiếp tục chạy cho dòng tiếp theo
             consecutive = 0
@@ -238,7 +260,7 @@ class Board():
 
         return score
 
-    def evaluateVertical(self, boardMatrix, forX, playersTurn):
+    def vertical_score(self, boardMatrix, forX, playersTurn):
         consecutive = 0
         blocks = 2
         score = 0
@@ -250,26 +272,26 @@ class Board():
                 elif boardMatrix[i][j] == 0:
                     if consecutive > 0:
                         blocks -= 1
-                        score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                        score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                         consecutive = 0
                         blocks = 1
                     else:
                         blocks = 1
                 elif consecutive > 0:
-                    score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                    score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                     consecutive = 0
                     blocks = 2
                 else:
                     blocks = 2
 
             if consecutive > 0:
-                score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
             consecutive = 0
             blocks = 2
 
         return score
 
-    def evaluateDiagonal(self, boardMatrix, forX, playersTurn):
+    def diagonal_score(self, boardMatrix, forX, playersTurn):
         consecutive = 0
         blocks = 2
         score = 0
@@ -284,20 +306,20 @@ class Board():
                 elif boardMatrix[i][j] == 0:
                     if consecutive > 0:
                         blocks -= 1
-                        score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                        score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                         consecutive = 0
                         blocks = 1
                     else:
                         blocks = 1
                 elif consecutive > 0:
-                    score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                    score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                     consecutive = 0
                     blocks = 2
                 else:
                     blocks = 2
 
             if consecutive > 0:
-                score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
             consecutive = 0
             blocks = 2
 
@@ -313,26 +335,26 @@ class Board():
                 elif boardMatrix[i][j] == 0:
                     if consecutive > 0:
                         blocks -= 1
-                        score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                        score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                         consecutive = 0
                         blocks = 1
                     else:
                         blocks = 1
                 elif consecutive > 0:
-                    score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                    score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
                     consecutive = 0
                     blocks = 2
                 else:
                     blocks = 2
 
             if consecutive > 0:
-                score += self.getConsecutiveSetScore(consecutive, blocks, forX == playersTurn)
+                score += self.get_consecutive_set_score(consecutive, blocks, forX == playersTurn)
             consecutive = 0
             blocks = 2
 
         return score
 
-    def getConsecutiveSetScore(self, count, blocks, currentTurn):
+    def get_consecutive_set_score(self, count, blocks, currentTurn):
         winGuarantee = 1000000
         if blocks == 2 and count <= 5:
             return 0
@@ -368,6 +390,25 @@ class Board():
         elif count == 1:
             return 1
         return self.winScore * 2
+    '''
+    nextMoveX = 0
+    nextMoveY = 0
+    start = time.time()
+    bestMove = self.calcNextMove(3)
+    end = time.time()
+    if bestMove is not None:
+        nextMoveX = bestMove[0]
+        nextMoveY = bestMove[1]
+        print('Evaluation time: {}s'.format(round(end - start, 7)))
+        self.print_move(bestMove)
+    self.board[nextMoveX][nextMoveY] = 'x'
+    self.current_player = 'o'
+    self.print_board()
+    if self.getWinner():
+        break
+    continue
+    '''
+
     def game_loop(self):
         #print(self)
         self.print_board()
@@ -394,13 +435,17 @@ class Board():
                 else:
                     print('Invalid move: try again!')
                     continue
+
             if self.current_player == 'o':
                 nextMoveX = 0
                 nextMoveY = 0
-                bestMove = self.calcNextMove(1)
+                start = time.time()
+                bestMove = self.calc_next_move(3)
+                end = time.time()
                 if bestMove is not None:
                     nextMoveX = bestMove[0]
                     nextMoveY = bestMove[1]
+                    print('Evaluation time: {}s'.format(round(end - start, 7)))
                     self.print_move(bestMove)
                 self.board[nextMoveX][nextMoveY] = 'o'
                 self.current_player = 'x'
@@ -422,11 +467,14 @@ class Board():
         player_turn = False
         if self.current_player == 'o':
             player_turn = True
-        if(self.getScore(self.get_matrix_board(), True, player_turn) >= self.winScore):
+        if(self.get_score(self.get_matrix_board(), True, player_turn) >= self.winScore):
             print('Player X has won!!!')
             return True
-        if(self.getScore(self.get_matrix_board(),False, player_turn) >= self.winScore):
+        if(self.get_score(self.get_matrix_board(), False, player_turn) >= self.winScore):
             print('Player O: AI has won !!!!!')
+            return True
+        if all(self.board[i][j] != self.empty_sq for i in range(self.size) for j in range(self.size)):
+            print('DRAW')
             return True
     def get_matrix_board(self):
         matrix =[[0 for i in range(self.size)] for j in range(self.size)]
