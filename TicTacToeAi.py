@@ -1,26 +1,17 @@
+import copy
+import random
 import time
-class Board():
-    def __init__(self):
-        self.player= ['x','o']
-        self.empty_sq = '.'
-        self.size = 7
-        self.current_player = 'x'
-        #make it unchangeable
+
+class TicTacToeAI:
+    def __init__(self, player):
+        self.player = player
         self.winScore = 10000000
-        self.board = [[self.empty_sq for j in range(self.size)] for i in range(self.size)]
-
-    def print_board(self):
-        for row in range(self.size):
-            for col in range(self.size):
-                print(self.board[row][col], end='|')
-            print()
-        print()
-
-    def print_move(self, moves):
-        print('Making moves: X = {}, y = {}'.format(moves[0] + 1, moves[1] + 1))
+        self.empty_sq = ' '
+        self.board =[]
+        self.size = 0
     def calc_next_move(self, depth):
         #applying threat space search to get the best move first then using ABminmax
-        board = self.get_matrix_board()
+        board = self.get_matrix_board(self.size)
         attMove = self.search_winning_move(board) #optimal strat to win
 
         defMove = self.search_lose_move(board) #strat to get defense
@@ -46,7 +37,8 @@ class Board():
             print('AB move')
             return move
 
-    def next_move_sim(self, board, move, isUserTurn): #get nextmove matrix
+        #Getting board with next move simulator
+    def next_move_sim(self, board, move, isUserTurn):  # get nextmove matrix
         i, j = move[0], move[1]
         row, col = len(board), len(board[0])
         newBoard = [[0] * col for _ in range(row)]
@@ -56,25 +48,27 @@ class Board():
         newBoard[i][j] = 2 if isUserTurn else 1
         return newBoard
 
-    #search for possible winning move based on evaluation winning score
+
+
+    # search for possible winning move based on evaluation winning score
     def search_winning_move(self, matrix):
         allPossibleMoves = self.generate_moves(matrix)
         winning_move = [None, None, None]
 
         for move in allPossibleMoves:
             temp_board = self.next_move_sim(matrix, move, False)
-            #print(self.get_score(temp_board,False,False))
+            print(self.get_score(temp_board, False, False))
             if self.get_score(temp_board, False, False) >= self.winScore:
                 winning_move[1] = move[0]
                 winning_move[2] = move[1]
-                #print(self.get_score(temp_board, False, False) + 'move: ' + winning_move)
+                print(self.get_score(temp_board, False, False) + 'move: ' + winning_move)
                 return winning_move
 
         return winning_move
 
     def search_lose_move(self, matrix):
         allPossibleMoves = self.generate_moves(matrix)
-        print('Possible Moves: ',len(allPossibleMoves))
+        print('Possible Moves: ', len(allPossibleMoves))
 
         losingMove = [None, None, None]
 
@@ -88,7 +82,29 @@ class Board():
                 return losingMove
 
         return losingMove
-
+    def generate_moves(self, board): #Creating domain knowledge for AI
+        moves = []
+        for i in range(self.size):
+            for j in range(self.size):
+                if board[i][j] == 0:  # Check if the cell is empty
+                    # Check for adjacent stones in all four directions vertical horizontal diagonal \/
+                    if i > 0 and j > 0 and board[i - 1][j - 1] != 0:
+                        moves.append((i, j))
+                    elif i > 0 and board[i - 1][j] != 0:
+                        moves.append((i, j))
+                    elif i > 0 and j < self.size - 1 and board[i - 1][j + 1] != 0:
+                        moves.append((i, j))
+                    elif j > 0 and board[i][j - 1] != 0:
+                        moves.append((i, j))
+                    elif j < self.size - 1 and board[i][j + 1] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and j > 0 and board[i + 1][j - 1] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and board[i + 1][j] != 0:
+                        moves.append((i, j))
+                    elif i < self.size - 1 and j < self.size - 1 and board[i + 1][j + 1] != 0:
+                        moves.append((i, j))
+        return moves
     def minimax_search_ab(self, depth, board, max_player, alpha, beta):
         if depth == 0:
             return [self.evaluate_board(board, not max_player), None, None]
@@ -140,9 +156,8 @@ class Board():
                     bestMove = tempMove
                     bestMove[1] = move[0]
                     bestMove[2] = move[1]
-        #print(self.evaluate_board(board, not max_player))
+        # print(self.evaluate_board(board, not max_player))
         return bestMove
-
     def evaluate_board(self, board, userTurn): #GET EVALUATION RATIO O winning white/ X winning
         x_score = self.get_score(board, True, userTurn)
         o_score = self.get_score(board, False, userTurn)
@@ -151,75 +166,10 @@ class Board():
             x_score = 1.0
 
         return o_score / x_score
-
-    def generate_moves(self, board): #Creating domain knowledge for AI
-        moves = []
-        for i in range(self.size):
-            for j in range(self.size):
-                if board[i][j] == 0:  # Check if the cell is empty
-                    # Check for adjacent stones in all four directions vertical horizontal diagonal \/
-                    if i > 0 and j > 0 and board[i - 1][j - 1] != 0:
-                        moves.append((i, j))
-                    elif i > 0 and board[i - 1][j] != 0:
-                        moves.append((i, j))
-                    elif i > 0 and j < self.size - 1 and board[i - 1][j + 1] != 0:
-                        moves.append((i, j))
-                    elif j > 0 and board[i][j - 1] != 0:
-                        moves.append((i, j))
-                    elif j < self.size - 1 and board[i][j + 1] != 0:
-                        moves.append((i, j))
-                    elif i < self.size - 1 and j > 0 and board[i + 1][j - 1] != 0:
-                        moves.append((i, j))
-                    elif i < self.size - 1 and board[i + 1][j] != 0:
-                        moves.append((i, j))
-                    elif i < self.size - 1 and j < self.size - 1 and board[i + 1][j + 1] != 0:
-                        moves.append((i, j))
-        return moves
-
-        '''# Tìm những tất cả những ô trống nhưng có đánh XO liền kề
-        for i in range(self.size):
-            for j in range(self.size):
-                if boardMatrix[i][j] > 0:
-                    continue
-                if i > 0:
-                    if j > 0:
-                        if boardMatrix[i - 1][j - 1] > 0 or boardMatrix[i][j - 1] > 0:
-                            move = [i, j]
-                            moveList.append(move)
-                            continue
-                    if j < self.size - 1:
-                        if boardMatrix[i - 1][j + 1] > 0 or boardMatrix[i][j + 1] > 0:
-                            move = [i, j]
-                            moveList.append(move)
-                            continue
-                    if boardMatrix[i - 1][j] > 0:
-                        move = [i, j]
-                        moveList.append(move)
-                        continue
-                if i < self.size - 1:
-                    if j > 0:
-                        if boardMatrix[i + 1][j - 1] > 0 or boardMatrix[i][j - 1] > 0:
-                            move = [i, j]
-                            moveList.append(move)
-                            continue
-                    if j < self.size - 1:
-                        if boardMatrix[i + 1][j + 1] > 0 or boardMatrix[i][j + 1] > 0:
-                            move = [i, j]
-                            moveList.append(move)
-                            continue
-                    if boardMatrix[i + 1][j] > 0:
-                        move = [i, j]
-                        moveList.append(move)
-                        continue
-        return moveList'''
-
-
-
     def get_score(self, board, forX, x_turn):
         return self.horizontal_score(board, forX, x_turn) + \
             self.vertical_score(board, forX, x_turn) + \
             self.diagonal_score(board, forX, x_turn)
-
     def horizontal_score(self, board_matrix, forX, playersTurn):
         consecutive = 0
         blocks = 2
@@ -391,93 +341,7 @@ class Board():
         elif count == 1:
             return 1
         return self.winScore * 2
-    '''
-    nextMoveX = 0
-    nextMoveY = 0
-    start = time.time()
-    bestMove = self.calcNextMove(3)
-    end = time.time()
-    if bestMove is not None:
-        nextMoveX = bestMove[0]
-        nextMoveY = bestMove[1]
-        print('Evaluation time: {}s'.format(round(end - start, 7)))
-        self.print_move(bestMove)
-    self.board[nextMoveX][nextMoveY] = 'x'
-    self.current_player = 'o'
-    self.print_board()
-    if self.getWinner():
-        break
-    continue
-    '''
-
-    def game_loop(self):
-        #print(self)
-        self.print_board()
-        while True:
-            if self.current_player == 'x':
-                user_input = input('> ')
-
-                if user_input == 'exit': break
-
-                if user_input == '': continue
-
-                row = int(user_input.split(' ')[0]) - 1
-                col = int(user_input.split(' ')[1]) - 1
-
-                if self.is_valid(row, col):
-                    move = [row, col]
-                    self.print_move(move)
-                    self.board[row][col] = 'x'
-                    self.current_player = 'o'
-                    self.print_board()
-                    if self.getWinner():
-                        break
-                    continue
-                else:
-                    print('Invalid move: try again!')
-                    continue
-
-            if self.current_player == 'o':
-                nextMoveX = 0
-                nextMoveY = 0
-                start = time.time()
-                bestMove = self.calc_next_move(8)
-                end = time.time()
-                if bestMove is not None:
-                    nextMoveX = bestMove[0]
-                    nextMoveY = bestMove[1]
-                    print('Evaluation time: {}s'.format(round(end - start, 7)))
-                    self.print_move(bestMove)
-                self.board[nextMoveX][nextMoveY] = 'o'
-                self.current_player = 'x'
-                self.print_board()
-                if self.getWinner():
-                    break
-                continue
-
-    def is_valid(self, x, y):
-        if x < 0 or x >= self.size or y < 0 or y >= self.size:
-            return False
-        elif self.board[x][y] != self.empty_sq:
-
-            return False
-        else:
-            return True
-
-    def getWinner(self):
-        player_turn = False
-        if self.current_player == 'o':
-            player_turn = True
-        if(self.get_score(self.get_matrix_board(), True, player_turn) >= self.winScore):
-            print('Player X has won!!!')
-            return True
-        if(self.get_score(self.get_matrix_board(), False, player_turn) >= self.winScore):
-            print('Player O: AI has won !!!!!')
-            return True
-        if all(self.board[i][j] != self.empty_sq for i in range(self.size) for j in range(self.size)):
-            print('DRAW')
-            return True
-    def get_matrix_board(self):
+    def get_matrix_board(self, size):
         matrix =[[0 for i in range(self.size)] for j in range(self.size)]
         for i in range(self.size):
             for j in range(self.size):
@@ -486,8 +350,24 @@ class Board():
                 if self.board[i][j] == 'o':
                     matrix[i][j] = 1
         return matrix
+    def get_move(self, board, size):
+        # Find all available positions on the board
+        self.board = board
+        self.size = size
+        size = int(size)
+        available_moves = []
 
-    # create board instance
-board = Board()
-    # start game loop
-board.game_loop()
+        for i in range(size):
+            for j in range(size):
+                if board[i][j] == ' ':
+                    available_moves.append((i, j))
+        start = time.time()
+        bestMove = self.calc_next_move(3)
+        end = time.time()
+        if bestMove is not None:
+            print('Evaluation time: {}s'.format(round(end - start, 7)))
+            move = (bestMove[0], bestMove[1])
+            return move
+        # If there are no available moves, return None
+        # Choose a random available move
+        return available_moves[random.randint(0, len(available_moves) - 1)]
