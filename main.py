@@ -1,44 +1,40 @@
-
+import time
 class Board():
     def __init__(self):
         self.player= ['x','o']
-        self.empty_sq = ' '
-        self.size = 10
+        self.empty_sq = '.'
+        self.size = 7
         self.current_player = 'x'
         #make it unchangeable
         self.winScore = 10000000
-        self.board = [['.' for j in range(self.size)] for i in range(self.size)]
+        self.board = [[self.empty_sq for j in range(self.size)] for i in range(self.size)]
 
     def print_board(self):
-        for i in range(self.size):
-            print('|'.join(self.board[i]))
-        print()
-    '''def init_board(self):
-        # loop over board rows
         for row in range(self.size):
-            # loop over board columns
             for col in range(self.size):
-                # set every board square to empty square
-                self.board[row, col] = self.empty_sq'''
+                print(self.board[row][col], end='|')
+            print()
+        print()
 
     def print_move(self, moves):
-        for move in moves:
-            print('Making moves: X = {}, y = {}',(move[0], move[1]))
+        print('Making moves: X = {}, y = {}'.format(moves[0] + 1, moves[1] + 1))
     def calcNextMove(self, depth):
+        #applying threat space search to get the best move first then using ABminmax
         board = self.get_matrix_board()
-        bestMove = self.searchWinningMove(board)
-        badMove = self.searchLoseMove(board)
+        bestMove = self.searchWinningMove(board) #optimal strat to win
+        badMove = self.searchLoseMove(board) #strat to get defense
 
         move = [0, 0]
-
-        if badMove[1] is not None and badMove[2] is not None:
-            move[0] = badMove[1]
-            move[1] = badMove[2]
-            return move
-
         if bestMove[1] is not None and bestMove[2] is not None:
             move[0] = bestMove[1]
             move[1] = bestMove[2]
+            print('Best move')
+            return move
+        if badMove[1] is not None and badMove[2] is not None:
+            move[0] = badMove[1]
+            move[1] = badMove[2]
+            print('Def move')
+            return move
         else:
             bestMove = self.minimaxSearchAB(depth, board, True, -1.0, self.winScore)
             if bestMove[1] is None:
@@ -46,9 +42,10 @@ class Board():
             else:
                 move[0] = bestMove[1]
                 move[1] = bestMove[2]
-        return move
+            print('AB move')
+            return move
 
-    def playNextMove(self, board, move, isUserTurn):
+    def playNextMove(self, board, move, isUserTurn): #get nextmove matrix
         i, j = move[0], move[1]
         row, col = len(board), len(board[0])
         newBoard = [[0] * col for _ in range(row)]
@@ -58,6 +55,7 @@ class Board():
         newBoard[i][j] = 2 if isUserTurn else 1
         return newBoard
 
+    #search for possible winning move based on evaluation winning score
     def searchWinningMove(self, matrix):
         allPossibleMoves = self.generateMoves(matrix)
         winningMove = [None, None, None]
@@ -101,7 +99,7 @@ class Board():
         bestMove = [None, None, None]
 
         if max_player:
-            bestMove[0] = -1.0
+            bestMove[0] = -100000000
 
             for move in allPossibleMoves:
                 # Play current move
@@ -143,7 +141,7 @@ class Board():
 
         return bestMove
 
-    def evaluateBoardForWhite(self, board, userTurn):
+    def evaluateBoardForWhite(self, board, userTurn): #GET EVALUATION RATIO X winning/ O winning white
         blackScore = self.getScore(board, True, userTurn)
         whiteScore = self.getScore(board, False, userTurn)
 
@@ -152,13 +150,12 @@ class Board():
 
         return whiteScore / blackScore
 
-    def generateMoves(self, boardMatrix):
+    def generateMoves(self, boardMatrix): #Creating domain knowledge for AI
         moveList = []
-        boardSize = len(boardMatrix)
 
         # Tìm những tất cả những ô trống nhưng có đánh XO liền kề
-        for i in range(boardSize):
-            for j in range(boardSize):
+        for i in range(self.size):
+            for j in range(self.size):
                 if boardMatrix[i][j] > 0:
                     continue
                 if i > 0:
@@ -167,7 +164,7 @@ class Board():
                             move = [i, j]
                             moveList.append(move)
                             continue
-                    if j < boardSize - 1:
+                    if j < self.size - 1:
                         if boardMatrix[i - 1][j + 1] > 0 or boardMatrix[i][j + 1] > 0:
                             move = [i, j]
                             moveList.append(move)
@@ -176,13 +173,13 @@ class Board():
                         move = [i, j]
                         moveList.append(move)
                         continue
-                if i < boardSize - 1:
+                if i < self.size - 1:
                     if j > 0:
                         if boardMatrix[i + 1][j - 1] > 0 or boardMatrix[i][j - 1] > 0:
                             move = [i, j]
                             moveList.append(move)
                             continue
-                    if j < boardSize - 1:
+                    if j < self.size - 1:
                         if boardMatrix[i + 1][j + 1] > 0 or boardMatrix[i][j + 1] > 0:
                             move = [i, j]
                             moveList.append(move)
@@ -373,10 +370,8 @@ class Board():
         return self.winScore * 2
     def game_loop(self):
         #print(self)
+        self.print_board()
         while True:
-            print(self.print_board())
-            if self.getWinner():
-                break
             if self.current_player == 'x':
                 user_input = input('> ')
 
@@ -384,26 +379,49 @@ class Board():
 
                 if user_input == '': continue
 
-                row = int(user_input.split(' ')[1]) - 1
-                col = int(user_input.split(' ')[0]) - 1
+                row = int(user_input.split(' ')[0]) - 1
+                col = int(user_input.split(' ')[1]) - 1
 
-                self.board[row][col] = 'x'
-                self.current_player = 'o'
-
+                if self.is_valid(row, col):
+                    move = [row, col]
+                    self.print_move(move)
+                    self.board[row][col] = 'x'
+                    self.current_player = 'o'
+                    self.print_board()
+                    if self.getWinner():
+                        break
+                    continue
+                else:
+                    print('Invalid move: try again!')
+                    continue
             if self.current_player == 'o':
                 nextMoveX = 0
                 nextMoveY = 0
-                bestMove = self.calcNextMove(3)
+                bestMove = self.calcNextMove(1)
                 if bestMove is not None:
                     nextMoveX = bestMove[0]
                     nextMoveY = bestMove[1]
-                    self.board[nextMoveX][nextMoveY] = 'o'
-                self.current_player ='x'
+                    self.print_move(bestMove)
+                self.board[nextMoveX][nextMoveY] = 'o'
+                self.current_player = 'x'
+                self.print_board()
+                if self.getWinner():
+                    break
+                continue
+
+    def is_valid(self, x, y):
+        if x < 0 or x >= self.size or y < 0 or y >= self.size:
+            return False
+        elif self.board[x][y] != self.empty_sq:
+
+            return False
+        else:
+            return True
 
     def getWinner(self):
         player_turn = False
         if self.current_player == 'o':
-            player_turn  = True
+            player_turn = True
         if(self.getScore(self.get_matrix_board(), True, player_turn) >= self.winScore):
             print('Player X has won!!!')
             return True
@@ -411,7 +429,7 @@ class Board():
             print('Player O: AI has won !!!!!')
             return True
     def get_matrix_board(self):
-        matrix =  [[0 for i in range(self.size)] for j in range(self.size)]
+        matrix =[[0 for i in range(self.size)] for j in range(self.size)]
         for i in range(self.size):
             for j in range(self.size):
                 if self.board[i][j] == 'x':
